@@ -55,5 +55,11 @@ urlpatterns = [
     path('camp_requirements/', views.camp_requirements_list, name='camp_requirements_list'),
     path('submission_success/', views.SubmissionSuccess.as_view(), name='submission_success'),
     path('consent_success/', views.ConsentSuccess.as_view(), name='consent_success'),
+    path('missing-persons/', views.MissingPersonsView.as_view(), name='missing-persons'),
+    path('report_missing_person/', views.ReportMissingPerson.as_view(), name='report_missing_person'),
+    path('missing_report_success/', views.ReportMissingPersonSuccess.as_view(), name='missing_report_success'),
+    path('missing_persons_list/', views.report_missing_persons_data, name='missing_persons_list'),
+    url(r'missing_person_report_details/(?P<report_id>\d+)/$', views.missing_person_report_details, name='missing_person_report_details'),
+
     url(r'c/(?P<pk>\d+)/(?P<ts>\d+)/$', views.VolunteerConsent.as_view(), name='volunteer_consent'),
 ]

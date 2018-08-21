@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load bootstrap3 %}
+
+{% block css %}
+<style>
+    .table{
+      table-layout: fixed;
+    }
+
+    .table td{
+      word-wrap: break-word;
+    }
+</style>
+<style>
+@media only screen and (max-width: 800px)  {
+
+		#requests-table table, thead, tbody, th, td, tr {
+			display: block;
+		}
+
+		#requests-table thead tr {
+			position: absolute;
+			top: -9999px;
+			left: -9999px;
+		}
+
+    #requests-table tr {
+      margin: 0 0 1rem 0;
+    }
+
+    #requests-table tr:nth-child(odd) {
+      background: #ccc;
+    }
+
+		#requests-table td {
+			/* Behave  like a "row" */
+			border: none;
+			border-bottom: 1px solid #eee;
+			position: relative;
+			padding-left: 50%;
+		}
+
+		#requests-table td:before {
+			/* Now like a table header */
+			position: absolute;
+			/* Top/left values mimic padding */
+			top: 0;
+			left: 6px;
+			width: 45%;
+			padding-right: 10px;
+			white-space: normal;
+		}
+  }
+@media only screen and (max-width: 420px)  {
+		#requests-table td {
+        min-height: 60px;
+		}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+  <div class="text-right">
+    <a href="/missing-persons">Missing Persons</a> |
+    <a href="/report_missing_person">Report Missing Persons</a>
+  </div>
+<h1 class="text-center">View Missing Person Reports</h1>
+<form action="" method="get">
+       {% bootstrap_form filter.form bound_css_class=False %}
+       <input value="View Missing Reports" class="btn btn-primary" type="submit" /> <a href="/report_missing_person" class="btn btn-success pull-right" role="button">
+        {% bootstrap_icon "chevron-plus" %} Report Missing Persons - <span class="ml small">കാണാതായെന്ന്  അറിയിക്കുക</span>
+    </a>
+ </form>
+ <div id="requests-table" class="table-responsive">
+  <table id="req-table" class="table">
+    <thead>
+      <tr>
+        <th>Name<br/>പേര്</th>
+        <th>Age<br/>പ്രായം</th>
+        <th>Gender<br/>ലിംഗം</th>
+        <th>Address<br/>വിലാസം</th>
+        <th>Location<br/>സ്ഥലം</th>
+        <th>District<br/>ജില്ല</th>
+        <th>Missing from (Date)<br/>കാണാതായ ദിവസം</th>
+        <th>Police Station<br/>പോലീസ് സ്റ്റേഷൻ </th>
+        <th>Found At Location<br/>കണ്ടെത്തിയ സ്ഥലം</th>
+        <th>Current Contact Phone<br/>ഇപ്പോൾ ബന്ധപ്പെടാവുന്ന  ഫോണ്‍ നമ്പര്‍</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for req in data %}
+        <tr>
+          <td>{{ req.missing_persons_name }}</td>
+          <td>{{ req.missing_persons_age }}</td>
+          <td>{{ req.missing_persons_gender }}</td>
+          <td>{{ req.missing_persons_address }}</td>
+          <td>{{ req.missing_from_location }}</td>
+          <td>{{ req.get_missing_from_district_display}}</td>
+          <td>{{ req.missing_from_date }}</td>
+          <td>{{ req.police_station }}</td>
+          <td>{{ req.found_location }}</td>
+          <td><a href="tel:{{ req.current_contact_number }}">{{ req.current_contact_number }}</a></td>
+          <td><a class="btn btn-sm btn-success" href="{%url 'missing_person_report_details' req.id %}" target="_blank">More details</a></td>
+        </tr>
+    {% endfor %}
+  </tbody>
+  </table>
+
+  <div class="pagination" >
+    <span class="step-links">
+        {% if data.has_previous %}
+            <a href="?page=1&district={{ request.GET.district }}&area={{ request.GET.area }}">&laquo; first</a>
+            <a href="?page={{ data.previous_page_number }}&district={{ request.GET.district }}&area={{ request.GET.area }}">previous</a>
+        {% endif %}
+
+        {% for i in data.paginator.page_range %}
+        {% if data.number == i %}
+            <a class="active"><span>{{ i }} <span class="sr-only">(current)</span></span></a>
+            {% elif i > data.min_page and i < data.max_page or i|divisibleby:data.lim_page %}
+          <a href="?page={{ i }}&district={{ request.GET.district }}&area={{ request.GET.area }}">{{ i }}</a>
+        {% endif %}
+      {% endfor %}
+
+        {% if data.has_next %}
+            <a href="?page={{ data.next_page_number }}&district={{ request.GET.district }}&area={{ request.GET.area }}">next</a>
+            <a href="?page={{ data.paginator.num_pages }}&district={{ request.GET.district }}&area={{ request.GET.area }}">last &raquo;</a>
+            {% endif %}
+    </span>
+  </div>
+
+ </div>
+
+ <script>
+   window.onload = function() {
+     $("input.search").keyup(search);
+   }
+
+   function search() {
+     $("#req-table").find("tr").each(function(i,el) {
+       // skip header row
+       if (i == 0) return
+       el = $(el)
+       var tds = el.find("td")
+       var loc = tds.eq(1).text().toLowerCase()
+       var requestee = tds.eq(2).text().toLowerCase()
+       var phone = tds.eq(3).text()
+       var locKey = $("#search-loc").val().toLowerCase()
+       var reqKey = $("#search-requestee").val().toLowerCase()
+       var phoneKey = $("#search-phone").val()
+
+       if (loc.includes(locKey) &&
+           requestee.includes(reqKey) &&
+           phone.includes(phoneKey))
+         {
+           el.show()
+         } else {
+           el.hide()
+         }
+   })
+   }
+ </script>
+ {% endblock %}

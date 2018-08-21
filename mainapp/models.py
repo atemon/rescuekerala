@@ -559,3 +559,44 @@ class CollectionCenter(models.Model):
 
     def get_absolute_url(self):
         return reverse('collection_centers_list')
+
+
+class MissingPerson(models.Model):
+    """Man missing cases to be reported."""
+
+    # TODO: Move phone_number_regex outside all class as constant PHONE_NUMBER_REGEX
+    phone_number_regex = RegexValidator(regex='^((\+91|91|0)[\- ]{0,1})?[456789]\d{9}$', message='Please Enter 10/11 digit mobile number or landline as 0<std code><phone number>', code='invalid_mobile')
+
+    missing_persons_name = models.CharField(max_length=100, blank=False, null=False, verbose_name="Missing person's Name - കാണാതായ ആളുടെ പേര്")
+    missing_persons_age = models.CharField(max_length=100, blank=False, null=False, verbose_name="Missing person's Age - കാണാതായ ആളുടെ പ്രായം")
+    missing_persons_gender = models.IntegerField(
+        choices = gender,
+        verbose_name="Missing person's Gender - കാണാതായ ആളുടെ ലിംഗം",
+        null=True,blank=True
+    )
+    missing_persons_photo = models.ImageField( null=True, blank=True, verbose_name="Missing person's Photo - കാണാതായ ആളുടെ ഫോട്ടോ ", upload_to=upload_to)
+    missing_from_district = models.CharField(
+        max_length = 15,
+        choices = districts,
+        verbose_name='Missing From District - ജില്ല',
+        blank=False, null=False,
+    )
+    missing_from_location = models.CharField(max_length=200, verbose_name='Missing From Location - സ്ഥലം', blank=False, null=False)
+    missing_from_date = models.DateTimeField(auto_now=False, auto_now_add=False, blank=False, null=False, verbose_name="Missing from (Date) - കാണാതായ ദിവസം")
+    missing_persons_description = models.TextField(verbose_name="Brief Description - കാണാതായ ആളുടെ ചെറു വിവരണം")
+    missing_persons_guardian = models.CharField(max_length=200, verbose_name="Father's/Guardiens's Name - കാണാതായ ആളുടെ പിതാവിന്റെ /രക്ഷിതാവിന്റെ പേര്")
+    missing_persons_address = models.TextField(verbose_name="Address - കാണാതായ ആളുടെ വിലാസം")
+
+    reported_by = models.CharField(max_length=100,verbose_name='Reported By - അറിയിക്കുന്ന ആളുടെ പേര്', blank=False, null=False)
+    reporter_phone = models.CharField(max_length=14,verbose_name="Reporter's Phone - അറിയിക്കുന്ന ആളുടെ ഫോണ്‍ നമ്പര്‍", validators=[phone_number_regex], blank=False, null=False)
+    relation_to_missing_person = models.CharField(max_length=100,verbose_name="Reporter's relation to missing person - കാണാതായ ആളുമായി അറിയിക്കുന്ന ആളുടെ ബന്ധം", blank=False, null=False)
+    police_station = models.CharField(max_length=200, verbose_name='Police Station - പോലീസ് സ്റ്റേഷൻ ')
+
+    assigned_to = models.ForeignKey(Volunteer, on_delete=models.SET_NULL, null=True, blank=True)
+
+    is_active = models.BooleanField(default=True, verbose_name="Is active", null=True, blank=True)
+    reported_on = models.DateTimeField(auto_now=False, auto_now_add=True, verbose_name="Reported On - അറിയിച്ച ദിവസം")
+    found_on = models.DateTimeField(auto_now=False, auto_now_add=False, null=True, blank=True, verbose_name='Found On - കണ്ടെത്തിയ ദിവസം')
+    found_location = models.CharField(max_length=200, null=True, blank=True, verbose_name='Found At Location - കണ്ടെത്തിയ സ്ഥലം')
+    current_contact_number = models.CharField(max_length=14, null=True, blank=True, verbose_name="Current contact number - ഇപ്പോൾ ബന്ധപ്പെടാവുന്ന  ഫോണ്‍ നമ്പര്‍", validators=[phone_number_regex])
+

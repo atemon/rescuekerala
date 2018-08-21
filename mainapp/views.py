@@ -6,8 +6,27 @@ from django.views.generic.list import ListView
 
 from mainapp.redis_queue import sms_queue
 from mainapp.sms_handler import send_confirmation_sms
+
+# TODO: Keep models alphabetically sorted and on multi line like
+# from .models import (
+#     Announcements ,
+#     Contributor,
+#     DistrictManager,
+#     DistrictNeed,
+#     districts ,
+#     NGO,
+#     Person,
+#     MissingPerson
+#     PrivateRescueCamp,
+#     Request,
+#     RescueCamp,
+#     Volunteer,
+# )
+# Currently not changing to avoid unnecessary conflict
+
 from .models import Request, Volunteer, DistrictManager, Contributor, DistrictNeed, Person, RescueCamp, NGO, \
-    Announcements , districts , PrivateRescueCamp
+    Announcements, districts, PrivateRescueCamp, MissingPerson
+
 import django_filters
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.http import JsonResponse
@@ -127,7 +146,7 @@ def pcampdetails(request):
         req_data = PrivateRescueCamp.objects.get(id=id)
     except:
         return HttpResponseRedirect("/error?error_text={}".format('Sorry, we couldnt fetch details for that Camp'))
-    return render(request, 'mainapp/p_camp_details.html', {'req': req_data }) 
+    return render(request, 'mainapp/p_camp_details.html', {'req': req_data })
 
 def download_ngo_list(request):
     district = request.GET.get('district', None)
@@ -713,7 +732,7 @@ class CoordinatorCampFilter(django_filters.FilterSet):
         if self.data == {}:
             self.queryset = self.queryset.none()
 
-            
+
 class PrivateCampFilter(django_filters.FilterSet):
     class Meta:
         model = PrivateRescueCamp
@@ -757,17 +776,17 @@ class VolunteerConsent(UpdateView):
     model = Volunteer
     fields = ['has_consented']
     success_url = '/consent_success/'
-    
+
     def dispatch(self, request, *args, **kwargs):
         timestamp = parser.parse(self.get_object().joined.isoformat())
         timestamp = calendar.timegm(timestamp.utctimetuple())
         timestamp = str(timestamp)[-4:]
         request_ts = kwargs['ts']
-        
+
         if request_ts != timestamp:
             return HttpResponseRedirect("/error?error_text={}".format('Sorry, we couldnt fetch volunteer info'))
         return super(VolunteerConsent, self).dispatch(request, *args, **kwargs)
-        
+
 
 class ConsentSuccess(TemplateView):
     template_name = "mainapp/volunteer_consent_success.html"
@@ -806,3 +825,69 @@ class CollectionCenterView(CreateView):
         'city',
     ]
 
+class MissingPersonsView(TemplateView):
+    template_name = "missing_persons.html"
+
+class ReportMissingPerson(CreateView):
+    model = MissingPerson
+    fields = [
+        'missing_persons_name',
+        'missing_persons_age',
+        'missing_persons_gender',
+        'missing_persons_guardian',
+        'missing_persons_address',
+        'missing_persons_photo',
+        'missing_from_district',
+        'missing_from_location',
+        'missing_from_date',
+        'missing_persons_description',
+        'reported_by',
+        'reporter_phone',
+        'relation_to_missing_person',
+        'police_station',
+    ]
+    success_url = '/missing_report_success/'
+    template_name = "mainapp/reportpersonmissing_form.html"
+
+class ReportMissingPersonSuccess(TemplateView):
+    template_name = "mainapp/report_missing_person_success.html"
+
+
+class MissingPersonFilter(django_filters.FilterSet):
+    class Meta:
+        model = MissingPerson
+        fields = {
+            'missing_persons_name': ['icontains'],
+            'missing_from_district': ['exact'],
+            'missing_from_location': ['icontains'],
+            'police_station': ['icontains'],
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(MissingPersonFilter, self).__init__(*args, **kwargs)
+        # at startup user doen't push Submit button, and QueryDict (in data) is empty
+        if self.data == {}:
+            self.queryset = self.queryset.none()
+
+
+
+def report_missing_persons_data(request):
+    filter = MissingPersonFilter(request.GET, queryset=MissingPerson.objects.all())
+    report_missing_data = filter.qs.order_by('-id')
+    paginator = Paginator(report_missing_data, PER_PAGE)
+    page = request.GET.get('page')
+    report_missing_data = paginator.get_page(page)
+    report_missing_data.min_page = report_missing_data.number - PAGE_LEFT
+    report_missing_data.max_page = report_missing_data.number + PAGE_RIGHT
+    report_missing_data.lim_page = PAGE_INTERMEDIATE
+    return render(request, 'mainapp/report_missing_persons_view.html', {'filter': filter, "data": report_missing_data })
+
+def missing_person_report_details(request, report_id=None):
+    if not report_id:
+        return HttpResponseRedirect("/error?error_text={}".format('Page not found!'))
+    filter = MissingPersonFilter(None)
+    try:
+        report_missing_data = MissingPerson.objects.get(id=report_id)
+    except:
+        return HttpResponseRedirect("/error?error_text={}".format('Sorry, we couldnt fetch details for that request'))
+    return render(request, 'mainapp/report_missing_person_details.html', {'filter': filter, 'req': report_missing_data })

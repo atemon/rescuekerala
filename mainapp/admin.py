@@ -3,9 +3,9 @@ import csv
 from django.contrib import admin
 from django.core.validators import EMPTY_VALUES
 from django.http import HttpResponse
-
+# TODO: Sort models alphabetically as commented in views.py
 from .models import Request, Volunteer, Contributor, DistrictNeed, DistrictCollection, DistrictManager, vol_categories, \
-    RescueCamp, Person, NGO, Announcements, DataCollection , PrivateRescueCamp , CollectionCenter
+    RescueCamp, Person, NGO, Announcements, DataCollection , PrivateRescueCamp , CollectionCenter, MissingPerson
 
 
 def create_csv_response(csv_name, header_row, body_rows):
@@ -59,7 +59,7 @@ class VolunteerAdmin(admin.ModelAdmin):
     actions = ['download_csv', 'mark_inactive', 'mark_active']
     readonly_fields = ('joined',)
     list_display = ('name', 'phone', 'organisation', 'joined', 'is_active')
-    list_filter = ('district', 'joined', 'is_active', 'has_consented')	
+    list_filter = ('district', 'joined', 'is_active', 'has_consented')
 
     def download_csv(self, request, queryset):
         header_row = [f.name for f in Volunteer._meta.get_fields()]
@@ -119,6 +119,7 @@ class ContributorAdmin(admin.ModelAdmin):
     def mark_as_new(self, request, queryset):
         queryset.update(status='new')
         return
+
 
 class RescueCampAdmin(admin.ModelAdmin):
     actions = ['download_csv', 'download_inmates' ,  'mark_as_closed', 'mark_as_active']
@@ -198,6 +199,29 @@ class DataCollectionAdmin(admin.ModelAdmin):
     list_display = ['document_name', 'document', 'tag']
 
 
+class MissingPersonAdmin(admin.ModelAdmin):
+    list_display = [
+        'missing_persons_name',
+        'missing_persons_age',
+        'missing_persons_gender',
+        'missing_persons_guardian',
+        'missing_persons_address',
+        'missing_persons_photo',
+        'missing_from_district',
+        'missing_from_location',
+        'missing_from_date',
+        'reported_by',
+        'reporter_phone',
+        'relation_to_missing_person',
+        'police_station',
+        'assigned_to',
+        'is_active',
+        'reported_on',
+        'found_on',
+        'found_location',
+        'current_contact_number',
+    ]
+
 admin.site.register(Request, RequestAdmin)
 admin.site.register(Volunteer, VolunteerAdmin)
 admin.site.register(Contributor, ContributorAdmin)
@@ -211,3 +235,4 @@ admin.site.register(NGO, NGOAdmin)
 admin.site.register(Announcements, AnnouncementAdmin)
 admin.site.register(Person, PersonAdmin)
 admin.site.register(DataCollection, DataCollectionAdmin)
+admin.site.register(MissingPerson, MissingPersonAdmin)

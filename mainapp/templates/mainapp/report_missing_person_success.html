@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load bootstrap3 %}
+
+{% block content %}
+<div class="text-right">
+    <a href="/missing-persons">Missing Persons</a> |
+    <a href="/report_missing_person">Report Missing Persons</a> |
+    <a href="/missing_persons_list">List Missing Persons</a>
+</div>
+<h3 align="center">Data successfully registered</h3>
+<h3 align="center">വിവരങ്ങൾ വിജയകരമായി രജിസ്റ്റർ ചെയ്തിരിക്കുന്നു</h3>
+<div style="text-align:center">
+    <a href="/report_missing_person/" class="home-button card" role="button">
+    {% bootstrap_icon "search" %}
+    <span class="text">
+        Report Missing<br/>Person
+        <span class="ml small">കാണാതായെന്ന്  അറിയിക്കുക</span>
+    </span>
+    </a>
+    <a href="/missing_persons_list" class="home-button card" role="button">
+        {% bootstrap_icon "list" %}
+        <span class="text">
+            Missing Persons<br/>
+            <span class="ml small">കാണാതായവരുടെ പട്ടിക</span>
+        </span>
+    </a>
+</div>
+{% endblock %}

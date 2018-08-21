@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load bootstrap3 static%}
+{% block css%}
+<style type="text/css">
+.datepicker-days tr:nth-child(even) {
+    background-color: #FFF;
+}
+</style>
+{% endblock %}
+{% block content %}
+
+  <div class="text-right">
+    <a href="/missing-persons">Missing Persons</a> |
+    <a href="/missing_persons_list">List Missing Persons</a>
+  </div>
+
+  <h3 class="text-center">
+      Report Missing Person |
+      കാണാതായ വ്യക്തിയുടെ വിവരങ്ങൾ രജിസ്റ്റർ ചെയ്യുക
+  </h3>
+
+  <div class="text-center text-danger">
+      {% if messages %}
+        {% for message in messages %}
+          <h3>{{ message }}</h3>
+        {% endfor %}
+      {% endif %}
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="simple-form">
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    {% buttons %}
+    <button type="submit" class="btn btn-success">
+    Submit {% bootstrap_icon "chevron-right" %}
+    </button>&nbsp;
+    <a href="/missing_persons_list" class="btn btn-default" role="button">
+        {% bootstrap_icon "chevron-left" %} Missing Persons <span class="ml small">കാണാതായവരുടെ പട്ടിക</span>
+    </a>
+    {% endbuttons %}
+
+    <p class="text-center">
+        Please enter all available information. This can help relatives find them if required. <br>
+        ബന്ധുക്കൾക്ക് ഇവരെ കണ്ടെത്തുന്നതിന് ഇത് സഹായിക്കും
+    </p>
+  </form>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script src="{% static 'js/bootstrap-datepicker.min.js' %}  "></script>
+  <script>
+  // $('#id_gender_0').parents('.radio').hide();
+  // $('#id_gender > .radio').removeClass('radio').addClass('radio-inline');
+  // $('#id_camped_at').attr('readonly', true);
+  $('#id_missing_from_date').datepicker({
+      format: 'yyyy-mm-dd',
+      endDate: '0d'
+  });
+  </script>
+
+{% endblock %}

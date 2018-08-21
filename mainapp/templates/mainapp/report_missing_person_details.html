@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load bootstrap3 %}
+
+{% block content %}
+<div class="text-right">
+    <a href="/missing-persons">Missing Persons</a> |
+    <a href="/report_missing_person">Report Missing Persons</a> |
+    <a href="/missing_persons_list">List Missing Persons</a>
+</div>
+<form action="{%url 'missing_persons_list' %}" method="get" class="text-center">
+       {{ filter.form.as_p }}
+       <input value="View requests" class="btn btn-primary" type="submit" />
+ </form>
+ <div class="table-responsive">
+  <table class="table">
+    <thead>
+      <tr>
+        <th colspan="2" style="text-align:center;">Report Missing Person details for #{{ req.id }}</th>
+      </tr>
+    </thead>
+
+    <tbody>
+        <tr><td><b> Missing person's Name<br/>പേര് : </b></td><td>{{ req.missing_persons_name }}</td></tr>
+        <tr><td><b> Missing person's Age<br/>പ്രായം : </b></td><td>{{ req.missing_persons_age }}</td></tr>
+        <tr><td><b> Missing person's Gender<br/>ലിംഗം : </b></td><td>{{ req.missing_persons_gender }}</td></tr>
+        <tr><td><b> Missing person's Photo<br/>ഫോട്ടോ  : </b></td><td>{%if req.missing_persons_photo %}<img src="{{ req.missing_persons_photo.url }}" style="width:175px;"/>{%else%}Photo not Available{%endif%}</td></tr>
+        <tr><td><b> Missing From District<br/>ജില്ല  : </b></td><td>{{ req.missing_from_district }}</td></tr>
+        <tr><td><b> Missing From Location<br/>സ്ഥലം : </b></td><td>{{ req.missing_from_location }}</td></tr>
+        <tr><td><b> Missing from (Date)<br/>കാണാതായ ദിവസം : </b></td><td>{{ req.missing_from_date }}</td></tr>
+        <tr><td><b> Father's/Guardiens's Name<br/>കാണാതായ ആളുടെ<br/>രക്ഷിതാവിന്റെ പേര് : </b></td><td>{{ req.missing_persons_guardian }}</td></tr>
+        <tr><td><b> Brief Description<br/>ചെറു വിവരണം : </b></td><td>{{ req.missing_persons_description }}</td></tr>
+        <tr><td><b> Address<br/>വിലാസം: </b></td><td>{{ req.missing_persons_address }}</td></tr>
+        <tr><td><b> Reported By: </b></td><td>{{ req.reported_by }}</td></tr>
+        <tr><td><b> Reporter's Phone: </b></td><td>{{ req.reporter_phone }}</td></tr>
+        <tr><td><b> Reporter's relation to <br/>missing person<br/>കാണാതായ ആളുമായി<br/> അറിയിക്കുന്ന<br/>ആളുടെ ബന്ധം: </b></td><td>{{ req.relation_to_missing_person }}</td></tr>
+        <tr><td><b> Police Station<br/>പോലീസ് സ്റ്റേഷൻ  : </b></td><td>{{ req.police_station }}</td></tr>
+        <tr><td><b> Volunteer : </b></td><td>{{ req.assigned_to }}</td></tr>
+        <tr><td><b> Is active : </b></td><td>{{ req.is_active }}</td></tr>
+        <tr><td><b> Reported On<br/>അറിയിച്ച ദിവസം : </b></td><td>{{ req.reported_on }}</td></tr>
+        <tr><td><b> Found On<br/>കണ്ടെത്തിയ ദിവസം : </b></td><td>{{ req.found_on }}</td></tr>
+        <tr><td><b> Found At Location<br/>കണ്ടെത്തിയ സ്ഥലം : </b></td><td>{{ req.found_location }}</td></tr>
+        <tr><td><b> Current contact number: </b></td><td>{{ req.current_contact_number }}</td></tr>
+    </tbody>
+  </table>
+    <div style="text-align:center">
+        <a href="/report_missing_person/" class="home-button card" role="button">
+        {% bootstrap_icon "search" %}
+        <span class="text">
+            Report Missing<br/>Person
+            <span class="ml small">കാണാതായെന്ന്  അറിയിക്കുക</span>
+        </span>
+        </a>
+        <a href="/missing_persons_list" class="home-button card" role="button">
+            {% bootstrap_icon "list" %}
+            <span class="text">
+                Missing Persons<br/>
+                <span class="ml small">കാണാതായവരുടെ പട്ടിക</span>
+            </span>
+        </a>
+    </div>
+</div>
+{% endblock %}
