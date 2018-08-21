@@ -2,15 +2,19 @@ from django.urls import path
 from django.conf.urls import url
 from django.contrib.auth import views as auth_views
 from . import views
+from . import api_views
 
 urlpatterns = [
     path('', views.HomePageView.as_view(), name='home'),
     path('ngo-volunteer/', views.NgoVolunteerView.as_view(), name='ngovolunteerview'),
     path('map-view/', views.MapView.as_view(), name='mapview'),
     path('request/', views.CreateRequest.as_view(), name='requestview'),
+    path('request_update/', api_views.request_update_list, name='api_request_update'),
     # path('volunteer/', views.Maintenance.as_view(), name='registerview'),
     path('volunteer/', views.RegisterVolunteer.as_view(), name='registerview'),
+    path('volunteerdata/', views.volunteerdata, name='volunteerdata'),
     path('NGO/', views.RegisterNGO.as_view(), name='ngoregisterview'),
+    path('ngoview/', views.ngo_list, name='ngoview'),
     path('NGO/download/', views.download_ngo_list, name='ngo_download_view'),
     path('requests/', views.request_list, name='requestlistview'),
     url(r'request_details/(?P<request_id>\d+)/$', views.request_details, name='requestdetailsview'),
@@ -26,9 +30,13 @@ urlpatterns = [
     path('map/' , views.mapview , name="mapview"),
     path('dmodash/' , views.dmodash , name="DMODash"),
     path('dmoinfo/' , views.dmoinfo , name="DMOInfo" ),
+    path('dmocsv/' , views.dmocsv , name="DMOCSV" ),
+    path('dmodist/' , views.dmodist , name="DMODist" ),
+    path('dmotal/' , views.dmotal , name="DMOTal" ),
     path('error/' , views.error , name="errorview" ),
     path('login/', auth_views.LoginView.as_view(template_name='mainapp/login.html'),name='user_login'),
     path('logout/', views.logout_view, name='user_logout'),
+    path('relief_camps/data', views.relief_camps_data, name='relief_camps_data'),
     path('relief_camps/', views.relief_camps, name='relief_camps'),
     path('relief_camps_list', views.relief_camps_list, name='relief_camps_list'),
     path('camp/<int:pk>/requirements/',views.CampRequirements.as_view(),name='camp_requirements'),
