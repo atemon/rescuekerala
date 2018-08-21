@@ -1,8 +1,12 @@
 import os
 import uuid
+from enum import Enum
+
 from django.db import models
 from django.core.validators import RegexValidator
 from django.contrib.auth.models import User
+from django.urls import reverse
+
 
 districts = (
     ('alp','Alappuzha - ആലപ്പുഴ'),
@@ -81,6 +85,11 @@ announcement_priorities = [
     ('M', 'Medium'),
     ('L', 'Low')]
 
+
+class LSGTypes(Enum):
+    CORPORATION = 0
+    MUNICIPALITY = 1
+    GRAMA_PANCHAYATH = 2
 
 
 class Request(models.Model):
@@ -174,6 +183,7 @@ class Volunteer(models.Model):
     is_spoc = models.BooleanField(default=False, verbose_name="Is point of contact")
     joined = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+    has_consented = models.BooleanField(default=False, verbose_name="Available")
 
     class Meta:
         verbose_name = 'Volunteer: Individual'
@@ -333,6 +343,63 @@ class RescueCamp(models.Model):
         return self.name
 
 
+class PrivateRescueCamp(models.Model):
+    lsg_types = [
+        (LSGTypes.CORPORATION.value, 'Corporation'),
+        (LSGTypes.MUNICIPALITY.value, 'Municipality'),
+        (LSGTypes.GRAMA_PANCHAYATH.value, 'Grama Panchayath')
+    ]
+
+    name = models.CharField(max_length=50,verbose_name="Camp Name - ക്യാമ്പിന്റെ പേര്")
+    location = models.TextField(verbose_name="Address - അഡ്രസ്",blank=True,null=True)
+    district = models.CharField(
+        max_length=15,
+        choices=districts
+    )
+    lsg_type = models.SmallIntegerField(
+        choices=lsg_types,
+        verbose_name='LSG Type - തദ്ദേശ സ്വയംഭരണ സ്ഥാപനം',
+        null=True, blank=True
+    )
+    lsg_name = models.CharField(max_length=150, null=True, blank=True, verbose_name="LSG Name - സ്വയംഭരണ സ്ഥാപനത്തിന്റെ പേര്")
+    ward_name = models.CharField(max_length=150, null=True, blank=True, verbose_name="Ward - വാർഡ്")
+    is_inside_kerala = models.BooleanField(verbose_name="Center inside kerala? - കേന്ദ്രം കേരളത്തിലാണോ")
+    city = models.CharField(max_length=150, verbose_name="City - നഗരം")
+    contacts = models.TextField(verbose_name="Phone Numbers - ഫോൺ നമ്പറുകൾ",blank=True,null=True)
+    facilities_available = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Facilities Available (light, kitchen, toilets etc.) - ലഭ്യമായ സൗകര്യങ്ങൾ"
+    )
+    map_link = models.CharField(max_length=250, verbose_name='Map link',blank=True,null=True,help_text="Copy and paste the full Google Maps link")
+    latlng = models.CharField(max_length=100, verbose_name='GPS Coordinates', blank=True,help_text="Comma separated latlng field. Leave blank if you don't know it")
+
+    total_people = models.IntegerField(null=True,blank=True,verbose_name="Total Number of People")
+    total_males = models.IntegerField(null=True,blank=True,verbose_name="Number of Males")
+    total_females = models.IntegerField(null=True,blank=True,verbose_name="Number of Females")
+    total_infants = models.IntegerField(null=True,blank=True,verbose_name="Number of Infants (<2y)")
+
+    food_req = models.TextField(blank=True,null=True,verbose_name="Food - ഭക്ഷണം")
+    clothing_req = models.TextField(blank=True,null=True,verbose_name="Clothing - വസ്ത്രം")
+    sanitary_req = models.TextField(blank=True,null=True,verbose_name="Sanitary - സാനിറ്ററി")
+    medical_req = models.TextField(blank=True,null=True,verbose_name="Medical - മെഡിക്കൽ")
+    other_req = models.TextField(blank=True,null=True,verbose_name="Other - മറ്റുള്ളവ")
+
+    status = models.CharField(
+        max_length = 10,
+        choices = relief_camp_status,
+        default = 'active',
+    )
+
+    class Meta:
+        verbose_name = 'Private Relief: Camp'
+        verbose_name_plural = "Private Relief: Camps"
+
+
+    def __str__(self):
+        return self.name
+
+
 class Person(models.Model):
     name = models.CharField(max_length=30,blank=False,null=False,verbose_name="Name - പേര്")
     phone = models.CharField(max_length=11,null=True,blank=True,verbose_name='Mobile - മൊബൈൽ')
@@ -433,6 +500,7 @@ class DataCollection(models.Model):
     def __str__(self):
         return self.document_name
 
+
 class RequestUpdate(models.Model):
     request = models.ForeignKey(Request, on_delete=models.CASCADE)
     status = models.CharField(
@@ -452,3 +520,42 @@ class RequestUpdate(models.Model):
 
     def __str__(self):
         return self.get_status_display()
+
+
+class CollectionCenter(models.Model):
+
+    lsg_types = [
+        (LSGTypes.CORPORATION.value, 'Corporation'),
+        (LSGTypes.MUNICIPALITY.value, 'Municipality'),
+        (LSGTypes.GRAMA_PANCHAYATH.value, 'Grama Panchayath')
+    ]
+
+    name = models.CharField(max_length=100, blank=False, null=False, verbose_name="Name - പേര്")
+    address = models.TextField(verbose_name="Address - വിലാസം")
+    contacts = models.CharField(max_length=250, null=True, blank=True, verbose_name='Contacts - മൊബൈൽ')
+    type_of_materials_collecting = models.TextField(
+        verbose_name="Type of materials collecting - ശേഖരിക്കുന്ന വസ്തുക്കൾ ",
+        null=True, blank=True
+    )
+    district = models.CharField(
+        max_length=15,
+        choices=districts,
+        verbose_name='Ceter District - ജില്ല',
+        null=True, blank=True
+    )
+    lsg_type = models.SmallIntegerField(
+        choices=lsg_types,
+        verbose_name='LSG Type - തദ്ദേശ സ്വയംഭരണ സ്ഥാപനം',
+        null=True, blank=True
+    )
+    lsg_name = models.CharField(max_length=150, null=True, blank=True, verbose_name="LSG Name - സ്വയംഭരണ സ്ഥാപനത്തിന്റെ പേര്")
+    ward_name = models.CharField(max_length=150, null=True, blank=True, verbose_name="Ward - വാർഡ്")
+    is_inside_kerala = models.BooleanField(verbose_name="Center inside kerala? - കേന്ദ്രം കേരളത്തിലാണോ")
+    city = models.CharField(max_length=150, verbose_name="City - നഗരം")
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        return reverse('collection_centers_list')
