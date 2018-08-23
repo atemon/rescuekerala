@@ -25,7 +25,7 @@ from mainapp.sms_handler import send_confirmation_sms
 # Currently not changing to avoid unnecessary conflict
 
 from .models import Request, Volunteer, DistrictManager, Contributor, DistrictNeed, Person, RescueCamp, NGO, \
-    Announcements, districts, PrivateRescueCamp, MissingPerson
+    Announcements , districts, RequestUpdate, PrivateRescueCamp, CsvBulkUpload, MissingPerson
 
 import django_filters
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
@@ -252,8 +252,10 @@ def relief_camps(request):
 def relief_camps_list(request):
     filter = RescueCampFilter(request.GET, queryset=RescueCamp.objects.filter(status='active'))
     relief_camps = filter.qs.annotate(count=Count('person')).order_by('district','name').all()
-
-    return render(request, 'mainapp/relief_camps_list.html', {'filter': filter , 'relief_camps' : relief_camps, 'district_chosen' : len(request.GET.get('district') or '')>0 })
+    paginator = Paginator(relief_camps,20)
+    page = request.GET.get('page')
+    req_reliefcamps = paginator.get_page(page)
+    return render(request, 'mainapp/relief_camps_list.html', {'filter': filter , 'relief_camps' : relief_camps, 'district_chosen' : len(request.GET.get('district') or '')>0,'relief_camps_pag': req_reliefcamps})
 
 
 class RequestFilter(django_filters.FilterSet):
@@ -372,9 +374,10 @@ def request_details(request, request_id=None):
     filter = RequestFilter(None)
     try:
         req_data = Request.objects.get(id=request_id)
+        updates = RequestUpdate.objects.all().filter(request_id=request_id).order_by('-update_ts')
     except:
         return HttpResponseRedirect("/error?error_text={}".format('Sorry, we couldnt fetch details for that request'))
-    return render(request, 'mainapp/request_details.html', {'filter' : filter, 'req': req_data })
+    return render(request, 'mainapp/request_details.html', {'filter' : filter, 'req': req_data, 'updates': updates })
 
 class DistrictManagerFilter(django_filters.FilterSet):
     class Meta:
@@ -535,6 +538,9 @@ def logout_view(request):
     return redirect('/relief_camps')
 
 class PersonForm(CustomForm):
+    checkin_date = forms.DateField(    required=False,input_formats=["%d-%m-%Y"],help_text="Use dd-mm-yyyy format. Eg. 18-08-2018")
+    checkout_date = forms.DateField(    required=False,input_formats=["%d-%m-%Y"],help_text="Use dd-mm-yyyy format. Eg. 21-08-2018")
+
     class Meta:
        model = Person
        fields = [
@@ -545,7 +551,10 @@ class PersonForm(CustomForm):
         'gender',
         'district',
         'address',
-        'notes'
+        'notes',
+        'checkin_date',
+        'checkout_date',
+        'status'
         ]
 
        widgets = {
@@ -553,7 +562,6 @@ class PersonForm(CustomForm):
            'notes': forms.Textarea(attrs={'rows':3}),
            'gender': forms.RadioSelect(),
         }
-
 
     def __init__(self, *args, **kwargs):
        camp_id = kwargs.pop('camp_id')
@@ -702,11 +710,14 @@ class PeopleFilter(django_filters.FilterSet):
 def find_people(request):
     filter = PeopleFilter(request.GET, queryset=Person.objects.all())
     people = filter.qs.order_by('name','-added_at')
-    paginator = Paginator(people, 50)
+    paginator = Paginator(people, PER_PAGE)
     page = request.GET.get('page')
     people = paginator.get_page(page)
-    return render(request, 'mainapp/people.html', {'filter': filter , "data" : people })
+    people.min_page = people.number - PAGE_LEFT
+    people.max_page = people.number + PAGE_RIGHT
+    people.lim_page = PAGE_INTERMEDIATE
 
+    return render(request, 'mainapp/people.html', {'filter': filter , "data" : people })
 
 def announcements(request):
     link_data = Announcements.objects.filter(is_pinned=False).order_by('-id').all()
@@ -740,6 +751,9 @@ class PrivateCampFilter(django_filters.FilterSet):
             'district' : ['exact'],
             'name' : ['icontains']
         }
+
+
+
 
     def __init__(self, *args, **kwargs):
         super(PrivateCampFilter, self).__init__(*args, **kwargs)
@@ -799,6 +813,63 @@ def camp_requirements_list(request):
     data = paginator.get_page(page)
     return render(request, "mainapp/camp_requirements_list.html", {'filter': filter , 'data' : data})
 
+class RequestUpdateView(CreateView):
+    model = RequestUpdate
+    template_name='mainapp/request_update.html'
+    fields = [
+        'status',
+        'other_status',
+        'updater_name',
+        'updater_phone',
+        'notes'
+    ]
+    success_url = '/req_update_success/'
+
+    def original_request(self):
+        return self.original_request
+
+    def updates(self):
+        return self.updates
+
+    #@method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        #could not use login_required decorator because it redirects to /accounts/login and we need /login
+        #disable authentication
+        # if not request.user.is_authenticated:
+        #     return redirect('/login'+'?next=request_updates/'+kwargs['request_id']+'/')
+
+        self.original_request = get_object_or_404(Request, pk=kwargs['request_id'])
+        self.updates = RequestUpdate.objects.all().filter(request_id=kwargs['request_id']).order_by('-update_ts')
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.request = self.original_request
+        self.object = form.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+class ReqUpdateSuccess(TemplateView):
+    template_name = "mainapp/request_update_success.html"
+
+
+class CollectionCenterFilter(django_filters.FilterSet):
+    class Meta:
+        model = CollectionCenter
+        fields = {
+            'name': ['icontains'],
+            'address': ['icontains'],
+            'contacts': ['icontains'],
+            'district': ['icontains'],
+            'lsg_name': ['icontains'],
+            'ward_name': ['icontains'],
+            'city': ['icontains'],
+         }
+
+    def __init__(self, *args, **kwargs):
+        super(CollectionCenterFilter, self).__init__(*args, **kwargs)
+        if self.data == {}:
+            self.queryset = self.queryset.none()
+
 
 class CollectionCenterListView(ListView):
     model = CollectionCenter
@@ -806,8 +877,33 @@ class CollectionCenterListView(ListView):
     ordering = ['-id']
 
     def get_context_data(self, **kwargs):
+        location = self.kwargs['location']
+        inside_kerala = True if location == 'inside_kerala' else False
         context = super().get_context_data(**kwargs)
+        context['filter'] = CollectionCenterFilter(
+            self.request.GET, queryset=CollectionCenter.objects.filter(is_inside_kerala=inside_kerala).order_by('-id')
+        )
         return context
+
+
+class CollectionCenterForm(forms.ModelForm):
+    class Meta:
+        model = CollectionCenter
+        fields = [
+            'name',
+            'address',
+            'contacts',
+            'type_of_materials_collecting',
+            'is_inside_kerala',
+            'district',
+            'lsg_name',
+            'ward_name',
+            'city',
+        ]
+        widgets = {
+            'lsg_name': forms.Select(),
+            'ward_name': forms.Select(),
+        }
 
 
 class CollectionCenterView(CreateView):
@@ -824,6 +920,7 @@ class CollectionCenterView(CreateView):
         'ward_name',
         'city',
     ]
+    form_class = CollectionCenterForm
 
 class MissingPersonsView(TemplateView):
     template_name = "missing_persons.html"

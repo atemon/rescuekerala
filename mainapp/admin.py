@@ -3,9 +3,14 @@ import csv
 from django.contrib import admin
 from django.core.validators import EMPTY_VALUES
 from django.http import HttpResponse
+from mainapp.redis_queue import bulk_csv_upload_queue
+from mainapp.csvimporter import import_inmate_file
+
 # TODO: Sort models alphabetically as commented in views.py
+
 from .models import Request, Volunteer, Contributor, DistrictNeed, DistrictCollection, DistrictManager, vol_categories, \
-    RescueCamp, Person, NGO, Announcements, DataCollection , PrivateRescueCamp , CollectionCenter, MissingPerson
+    RescueCamp, Person, NGO, Announcements, DataCollection , PrivateRescueCamp , CollectionCenter, CsvBulkUpload, \
+    MissingPerson
 
 
 def create_csv_response(csv_name, header_row, body_rows):
@@ -59,7 +64,7 @@ class VolunteerAdmin(admin.ModelAdmin):
     actions = ['download_csv', 'mark_inactive', 'mark_active']
     readonly_fields = ('joined',)
     list_display = ('name', 'phone', 'organisation', 'joined', 'is_active')
-    list_filter = ('district', 'joined', 'is_active', 'has_consented')
+    list_filter = ('district', 'joined', 'is_active', 'has_consented', 'area')
 
     def download_csv(self, request, queryset):
         header_row = [f.name for f in Volunteer._meta.get_fields()]
@@ -127,7 +132,7 @@ class RescueCampAdmin(admin.ModelAdmin):
                     'total_males', 'total_females', 'total_infants', 'food_req',
                     'clothing_req', 'sanitary_req', 'medical_req', 'other_req')
     list_filter = ('district','status')
-
+    search_fields = ['name']
 
     def download_inmates(self, request, queryset):
         header_row = ('name', 'phone', 'age', 'gender', 'district', 'camped_at')
@@ -181,7 +186,15 @@ class AnnouncementAdmin(admin.ModelAdmin):
 
 class PersonAdmin(admin.ModelAdmin):
     actions = ['download_csv']
-    list_display = ('name', 'phone', 'age', 'gender', 'district', 'camped_at')
+    list_display = ('name', 'camped_at', 'added_at', 'phone', 'age', 'gender', 'camped_at_district', 'camped_at_taluk')
+    ordering = ('-added_at',)
+    list_filter = ('camped_at__district', 'camped_at__taluk')
+
+    def camped_at_taluk(self, instance):
+        return instance.camped_at.taluk
+
+    def camped_at_district(self, instance):
+        return instance.camped_at.district_name
 
     def download_csv(self, request, queryset):
         header_row = ('name', 'phone', 'age', 'sex', 'district_name', 'camped_at')
@@ -198,6 +211,15 @@ class PersonAdmin(admin.ModelAdmin):
 class DataCollectionAdmin(admin.ModelAdmin):
     list_display = ['document_name', 'document', 'tag']
 
+class CsvBulkUploadAdmin(admin.ModelAdmin):
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        bulk_csv_upload_queue.enqueue(
+            import_inmate_file, obj.pk
+        )
+    autocomplete_fields = ['camp']
+    readonly_fields = ['is_completed', 'failure_reason']
+    list_display = ['name','camp','is_completed']
 
 class MissingPersonAdmin(admin.ModelAdmin):
     list_display = [
@@ -236,3 +258,4 @@ admin.site.register(Announcements, AnnouncementAdmin)
 admin.site.register(Person, PersonAdmin)
 admin.site.register(DataCollection, DataCollectionAdmin)
 admin.site.register(MissingPerson, MissingPersonAdmin)
+admin.site.register(CsvBulkUpload, CsvBulkUploadAdmin)
